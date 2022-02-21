@@ -39,7 +39,7 @@ st    r2, (r3)          # v2 = a->b.a->x[1] (v2 = 31)
 S4:
 ld    $a, r1            # r1 = &a
 ld    (r1), r1          # r1 = a
-st    r1, 20(r1)        # a = a->b.a
+st    r1, 20(r1)        # a->b.a = a
 
 ## C statement 5
 S5:

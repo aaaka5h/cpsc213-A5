@@ -28,10 +28,10 @@ int    i, v0, v1, v2, v3;
 ///
 
 void q1() {
-  v0 = a->x[i];  // 11
+  v0 = a->x[i];
   v1 = a->b.y[i];
   v2 = a->b.a->x[i];
-  a = a->b.a;
+  a->b.a = a;
   v3 = a->b.a->b.y[i];
 }
 
