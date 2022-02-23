@@ -141,10 +141,13 @@ static void *coalesce(struct myheap *h, void *first_block_start) {
 static int get_size_to_allocate(int user_size) {
   
   /* TO BE COMPLETED BY THE STUDENT. */
+  // printf("%d\n", user_size);
+  // printf("\n");
   int remainder = HEADER_SIZE - (user_size % HEADER_SIZE);
   if (remainder == HEADER_SIZE) {
     remainder = 0;
   }
+  // printf("%d\n", HEADER_SIZE + user_size + remainder + HEADER_SIZE);
   return HEADER_SIZE + user_size + remainder + HEADER_SIZE;
 }
 
@@ -162,7 +165,8 @@ static void *split_and_mark_used(struct myheap *h, void *block_start, int needed
   /* TO BE COMPLETED BY THE STUDENT. */
   if ((get_block_size(block_start) - needed_size >= HEADER_SIZE * 3) && is_within_heap_range(h, block_start + needed_size)) {
     void* free_block = block_start + needed_size;
-    set_block_header(free_block, get_block_size(free_block) - needed_size, 0);
+    set_block_header(free_block, get_block_size(block_start) - needed_size, 0);
+    // printf("%s %d", "Size of block splitting: ", get_block_size(block_start));
     set_block_header(block_start, needed_size, 1);
     return get_payload(block_start);
   }
@@ -217,8 +221,13 @@ void *myheap_malloc(struct myheap *h, unsigned int user_size) {
   
   /* TO BE COMPLETED BY THE STUDENT. */
   int size_needed = get_size_to_allocate(user_size);
+  // printf("Did we even get here lol\n");
   for (void* blk = h->start; is_within_heap_range(h, blk); blk = get_next_block(blk)) {
-    if (block_is_in_use(blk) == 0 && size_needed <= get_block_size(blk)) {
+    if (block_is_in_use(blk) == 0 && size_needed <= get_block_size(blk) && is_within_heap_range(h, blk + size_needed)) {
+      // printf("%s %p\n", "Found a nice piece to malloc: ", blk);
+      // int space_avail = get_block_size(blk);
+      // printf("%s %d\n", "Space allocated: ", size_needed);
+      split_and_mark_used(h, blk, size_needed);
       return get_payload(blk);
     }
   }

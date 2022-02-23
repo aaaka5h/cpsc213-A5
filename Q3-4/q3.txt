@@ -1,0 +1,21 @@
+Memory Reads: 
+v0 = a->x[i];
+- read address of a
+- read address of x
+- read value of x[i]
+
+v1 = a->b.y[i];
+- read value of b.y[i]
+
+v2 = a->b.a->x[i];
+- read address of b.a
+- read addess of a->b.a->x
+- read value of a->b.a->x[i]
+
+a->b.a = a;
+- 0, already read from above
+
+v3 = a->b.a->b.y[i];
+- read value of a->b.a->b.y[i]
+
+Memory Writes: 5
