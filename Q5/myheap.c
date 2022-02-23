@@ -120,9 +120,24 @@ static int is_within_heap_range(struct myheap *h, void *addr) {
  */
 static void *coalesce(struct myheap *h, void *first_block_start) {
   
-  /* TO BE COMPLETED BY THE STUDENT. */
-  return NULL;
-}
+  void* next_block = get_next_block(first_block_start);
+  void* prev_block = get_previous_block(first_block_start);
+  if (block_is_in_use(next_block) == 1 || block_is_in_use(prev_block) == 1) {
+    return first_block_start;
+  } else {
+    if (block_is_in_use(prev_block) == 0) {
+      long header_value = get_block_size(prev_block) | 0;
+      long* header_position = prev_block;
+      *header_position = header_value;
+      return header_position;
+    } else { // if (block_is_in_use(next_block) == 0)
+      long header_value = get_block_size(next_block) | 0;
+      long* header_position = next_block;
+      *header_position = header_value;
+      return header_position;
+      }
+    }
+  }
 
 /*
  * Determine the size of the block we need to allocate given the size
@@ -133,7 +148,11 @@ static void *coalesce(struct myheap *h, void *first_block_start) {
 static int get_size_to_allocate(int user_size) {
   
   /* TO BE COMPLETED BY THE STUDENT. */
-  return 0;
+  int remainder = HEADER_SIZE - (user_size % HEADER_SIZE);
+  if (remainder == HEADER_SIZE) {
+    remainder = 0;
+  }
+  return HEADER_SIZE + user_size + remainder + HEADER_SIZE;
 }
 
 /*
@@ -148,7 +167,16 @@ static int get_size_to_allocate(int user_size) {
 static void *split_and_mark_used(struct myheap *h, void *block_start, int needed_size) {
 
   /* TO BE COMPLETED BY THE STUDENT. */
-  return NULL;
+  if ((get_next_block(block_start) - needed_size >= block_start + HEADER_SIZE * 3) && is_within_heap_range(h, block_start+needed_size)) {
+    void* free_block = block_start + needed_size;
+    set_block_header(free_block, get_block_size(free_block), 0);
+    return get_payload(block_start);
+  } else {
+    long header_value = needed_size | 0;
+    long *header_position = block_start;
+    *header_position = header_value;
+    return get_payload(block_start);
+  }
 }
 
 /*
@@ -178,6 +206,14 @@ struct myheap *heap_create(unsigned int size)
 void myheap_free(struct myheap *h, void *payload) {
   
   /* TO BE COMPLETED BY THE STUDENT. */
+  void* block_start = get_block_start(payload);
+  int block_size = get_block_size(block_start);
+  set_block_header(block_start, block_size, 0);
+
+  void* prev_block = get_previous_block(block_start);
+  void* next_block = get_next_block(block_start);
+  coalesce(h, prev_block);
+  coalesce(h, next_block);
 }
 
 /*
@@ -188,5 +224,11 @@ void myheap_free(struct myheap *h, void *payload) {
 void *myheap_malloc(struct myheap *h, unsigned int user_size) {
   
   /* TO BE COMPLETED BY THE STUDENT. */
+  int size_needed = get_size_to_allocate(user_size);
+  for (void* blk = h->start; is_within_heap_range(h, blk); blk = get_next_block(blk)) {
+    if (block_is_in_use(blk) == 0 && size_needed <= get_block_size(blk)) {
+      return get_payload(blk);
+    }
+  }
   return NULL;
 }
