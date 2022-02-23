@@ -120,24 +120,17 @@ static int is_within_heap_range(struct myheap *h, void *addr) {
  */
 static void *coalesce(struct myheap *h, void *first_block_start) {
   
-  void* next_block = get_next_block(first_block_start);
-  void* prev_block = get_previous_block(first_block_start);
-  if (block_is_in_use(next_block) == 1 || block_is_in_use(prev_block) == 1) {
+  if (block_is_in_use(first_block_start) == 1 || is_last_block(h, first_block_start)) {
     return first_block_start;
   } else {
-    if (block_is_in_use(prev_block) == 0) {
-      long header_value = get_block_size(prev_block) | 0;
-      long* header_position = prev_block;
-      *header_position = header_value;
-      return header_position;
-    } else { // if (block_is_in_use(next_block) == 0)
-      long header_value = get_block_size(next_block) | 0;
-      long* header_position = next_block;
-      *header_position = header_value;
-      return header_position;
-      }
+    void* next_block = get_next_block(first_block_start);
+    if (block_is_in_use(first_block_start) == 0 && block_is_in_use(next_block) == 0 && is_within_heap_range(h, next_block)) {
+      int calesced_size = get_block_size(first_block_start) + get_block_size(next_block);
+      set_block_header(first_block_start, calesced_size, 0);
     }
+      return first_block_start;
   }
+}
 
 /*
  * Determine the size of the block we need to allocate given the size
@@ -167,16 +160,14 @@ static int get_size_to_allocate(int user_size) {
 static void *split_and_mark_used(struct myheap *h, void *block_start, int needed_size) {
 
   /* TO BE COMPLETED BY THE STUDENT. */
-  if ((get_next_block(block_start) - needed_size >= block_start + HEADER_SIZE * 3) && is_within_heap_range(h, block_start+needed_size)) {
+  if ((get_block_size(block_start) - needed_size >= HEADER_SIZE * 3) && is_within_heap_range(h, block_start + needed_size)) {
     void* free_block = block_start + needed_size;
-    set_block_header(free_block, get_block_size(free_block), 0);
-    return get_payload(block_start);
-  } else {
-    long header_value = needed_size | 0;
-    long *header_position = block_start;
-    *header_position = header_value;
+    set_block_header(free_block, get_block_size(free_block) - needed_size, 0);
+    set_block_header(block_start, needed_size, 1);
     return get_payload(block_start);
   }
+    set_block_header(block_start, get_block_size(block_start), 1);
+    return get_payload(block_start);
 }
 
 /*
@@ -211,9 +202,10 @@ void myheap_free(struct myheap *h, void *payload) {
   set_block_header(block_start, block_size, 0);
 
   void* prev_block = get_previous_block(block_start);
-  void* next_block = get_next_block(block_start);
-  coalesce(h, prev_block);
-  coalesce(h, next_block);
+  coalesce(h, block_start);
+  if (!is_first_block(h, block_start)) {
+    coalesce(h, prev_block);
+  }
 }
 
 /*
